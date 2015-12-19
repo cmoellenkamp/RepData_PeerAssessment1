@@ -1,0 +1,132 @@
+@@ -1,4 +1,9 @@
+ -# Reproducible Research: Peer Assessment 1 - CW Moellenkamp
+ +---
+ +title: "Reproducible Research: Peer Assessment 1"
+ +output: 
+ +  html_document:
+ +    keep_md: true
+ +---
+  
+  
+## Loading and preprocessing the data 
+
+*Read Table and create second version removing NAs for initial processing*
+
+```{r}
+stepsraw<-read.csv("activity.csv")
+stepscomp<-stepsraw[complete.cases(stepsraw),]
+```
+
+##Report on stepscomp table data  
+
+*Calculate the total number of steps per day*
+
+```{r}
+stepspd<-tapply(stepscomp$steps,stepscomp$date,sum)
+stepsperday<-stepspd[complete.cases(stepspd)]
+stepsperday
+```
+
+*Make a histogram of the number of steps per day*
+
+```{r}
+hist(stepsperday)
+```
+
+*Report the mean and median of the steps per day*
+
+```{r}
+meansteps<-mean(stepsperday)
+mediansteps<-median(stepsperday)
+meansteps
+mediansteps
+```
+
+*Create time series plot of the 5 minute interval average steps*
+
+```{r}
+avintsteps<-tapply(stepscomp$steps,stepscomp$interval,mean)
+Intervals<-names(avintsteps)
+plot(Intervals,avintsteps,type="l",ylab="Average Steps per Interval")
+```
+
+*Report which interval on average has the maximum steps*
+
+```{r}
+maxstepinterval<-names(avintsteps[max(avintsteps)])
+maxstepinterval
+```
+
+##Impute Missing Values in the original data file called stepsraw
+
+*Report the total number of missing values in the dataset*
+
+```{r}
+NAvals<-sum(is.na(stepsraw$steps))
+NAvals
+```
+
+*Develop strategy to replace NAs*  
+**Use overall daily mean divided by 288 intervals per day to fill in missing data**
+
+```{r}  
+meaninterval<-meansteps/288
+stepsimpute<-stepsraw
+stepsimpute$steps[which(is.na(stepsimpute$steps))]<-meaninterval
+```
+
+*Create histogram of this new dataset stepsimpute on a steps per day basis*
+
+```{r}
+stepsimppd<-tapply(stepsimpute$steps,stepsimpute$date,sum)
+hist(stepsimppd)
+```
+
+*Report mean and median of the imputed data set*
+
+```{r}
+meanstepsimp<-mean(stepsimppd)
+medianstepsimp<-median(stepsimppd)
+meanstepsimp
+medianstepsimp
+```
+
+**These data differ by adding steps at a mean value across all intervals - the** **mean is slightly higher and median is the same as in the data with NAs removed since more steps were added when the mean per interval values were added**
+
+
+**The impact of imputing missing data is pushing more steps into the center**
+**of the histogram in the grouping containing the mean of 10,766 steps per day**
+
+##Now lets add a factor noting if a date is a weekend or weekday  
+
+*This will allow us to see when more steps are taken on average*
+
+```{r}
+library(dplyr)
+wday<-c("Monday","Tuesday","Wednesday","Thursday","Friday")
+stepsimpute<-mutate(stepsimpute,dayfactor=
+                      factor(weekdays(as.Date(stepsimpute$date)) %in% wday,
+                      levels=c(TRUE,FALSE),labels=c("DAY","END")))
+```
+
+*Create a plot of averages of weekdays in one panel and*
+*weekends in another panel*
+
+```{r}
+stepsimputeend<-stepsimpute[stepsimpute$dayfactor=="END",]
+stepsimputewday<-stepsimpute[stepsimpute$dayfactor=="DAY",]
+
+endimpavstep<-tapply(stepsimputeend$steps,stepsimputeend$interval,mean)
+Intervalsend<-names(endimpavstep)
+
+dayimpavstep<-tapply(stepsimputewday$steps,stepsimputewday$interval,mean)
+Intervalsday<-names(dayimpavstep)
+
+par(mfrow=c(2,1))
+
+plot(Intervalsday,dayimpavstep,type="l",ylab="Average Steps per Interval",
+     xlab="Intervals", main ="Weekday")
+
+plot(Intervalsend,endimpavstep,type="l",ylab="Average Steps per Interval",
+     xlab="Intervals", main="Weekend")
+```
